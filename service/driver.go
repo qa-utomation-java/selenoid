@@ -19,25 +19,25 @@ type Driver struct {
 }
 
 // StartWithCancel - Starter interface implementation
-func (d *Driver) StartWithCancel() (*url.URL, func(), error) {
+func (d *Driver) StartWithCancel() (*url.URL, string, func(), error) {
 	slice, ok := d.Service.Image.([]interface{})
 	if !ok {
-		return nil, nil, fmt.Errorf("configuration error: image is not an array: %v", d.Service.Image)
+		return nil, "", nil, fmt.Errorf("configuration error: image is not an array: %v", d.Service.Image)
 	}
 	cmdLine := []string{}
 	for _, c := range slice {
 		if _, ok := c.(string); !ok {
-			return nil, nil, fmt.Errorf("configuration error: value is not a string: %v", c)
+			return nil, "", nil, fmt.Errorf("configuration error: value is not a string: %v", c)
 		}
 		cmdLine = append(cmdLine, c.(string))
 	}
 	if len(cmdLine) == 0 {
-		return nil, nil, errors.New("configuration error: image is empty")
+		return nil, "", nil, errors.New("configuration error: image is empty")
 	}
 	log.Println("Trying to allocate port")
 	l, err := net.Listen("tcp", "localhost:0")
 	if err != nil {
-		return nil, nil, fmt.Errorf("cannot bind to port: %v", err)
+		return nil, "", nil, fmt.Errorf("cannot bind to port: %v", err)
 	}
 	u := &url.URL{Scheme: "http", Host: l.Addr().String()}
 	_, port, _ := net.SplitHostPort(l.Addr().String())
@@ -51,16 +51,16 @@ func (d *Driver) StartWithCancel() (*url.URL, func(), error) {
 	if err != nil {
 		e := fmt.Errorf("Cannot start process %v: %v", cmdLine, err)
 		log.Println(e)
-		return nil, nil, e
+		return nil, "", nil, e
 	}
 	err = wait(u.String(), 30*time.Second)
 	if err != nil {
 		stopProcess(cmd)
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 	log.Printf("Process %d started in: %v\n", cmd.Process.Pid, time.Since(s))
 	log.Println("Proxying requests to:", u.String())
-	return u, func() { stopProcess(cmd) }, nil
+	return u, "", func() { stopProcess(cmd) }, nil
 }
 
 func stopProcess(cmd *exec.Cmd) {
