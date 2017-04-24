@@ -116,6 +116,8 @@ func create(w http.ResponseWriter, r *http.Request) {
 			queue.Drop()
 			return
 		}
+	} else {
+		browser.Caps.ScreenResolution = "1920x1080x24"
 	}
 	starter, ok := manager.Find(browser.Caps.Name, &browser.Caps.Version, browser.Caps.ScreenResolution, browser.Caps.VNC)
 	if !ok {
@@ -195,6 +197,7 @@ func create(w http.ResponseWriter, r *http.Request) {
 		Version: browser.Caps.Version,
 		URL:     u,
 		VNC:     vnc,
+		Screen:  browser.Caps.ScreenResolution,
 		Cancel:  cancel,
 		Timeout: onTimeout(timeout, func() {
 			request{r}.session(s.ID).Delete()
